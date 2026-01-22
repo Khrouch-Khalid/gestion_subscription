@@ -245,7 +245,7 @@ if ($reportType === 'expiring') {
         }
         
         .filter-btn:hover {
-            background-color: #;
+            background-color: #ff6b5b;
         }
         
         .report-container {
@@ -550,6 +550,7 @@ if ($reportType === 'expiring') {
                                 <div class="stat-card-value"><?php echo $reportData['summary']['total'] ?? 0; ?></div>
                             </div>
                             <div class="stat-card">
+                                <div class="stat-card-label">Active</div>
                                 <div class="stat-card-value"><?php echo $reportData['summary']['active'] ?? 0; ?></div>
                             </div>
                             <div class="stat-card">
