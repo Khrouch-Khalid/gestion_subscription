@@ -1,0 +1,54 @@
+
+
+
+
+  subscription_manager/
+│
+├── index.php                          # Redirects to login or dashboard
+│
+├── config/  
+│   ├── config.php                     # Database config & access control functions
+│   └── database.sql                   # Database schema
+│
+├── auth/
+│   ├── login.php                      # Login page (admin & agent only)
+│   └── logout.php                     # Logout script
+│
+├── admin/
+│   ├── admin_dashboard.php            # Admin dashboard with statistics  
+│   ├── create_agent.php               # Form to create new agent
+│   ├── manage_agents.php              # List and manage all agents
+│   ├── edit_agent.php                 # Edit agent details 
+│   ├── delete_agent.php               # Delete agent 
+│   ├── view_all_clients.php           # View all clients (all agents)
+│   ├── view_agent_clients.php         # View specific agent's clients
+│   ├── reports.php                    # System-wide reports
+│   └── settings.php                   # Admin settings
+│
+├── agent/
+│   ├── agent_dashboard.php            # Agent dashboard with their statistics
+│   ├── add_client.php                 # Form to add new client
+│   ├── manage_clients.php             # List and manage agent's clients
+│   ├── edit_client.php                # Edit client details
+│   ├── delete_client.php              # Delete client
+│   ├── view_client.php                # View client details and subscriptions
+│   ├── add_subscription.php           # Add subscription to client
+│   ├── edit_subscription.php          # Edit subscription
+│   ├── delete_subscription.php        # Delete subscription
+│   └── my_reports.php                 # Agent's reports
+│
+├── assets/
+│   ├── css/
+│   │   ├── style.css                  # Main stylesheet
+│   │   └── login.css                  # Login page styles
+│   ├── js/
+│   │   └── script.js                  # JavaScript functions
+│   └── images/
+│       └── (any images)
+│
+├── includes/
+│   ├── header.php                     # Common header (optional)
+│   ├── footer.php                     # Common footer (optional)
+│   └── sidebar.php                    # Sidebar component (optional)
+│
+└── README.md                          # Project documentation
