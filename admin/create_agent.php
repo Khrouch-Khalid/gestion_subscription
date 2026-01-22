@@ -224,19 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 
                 <a href="reports.php" style="<?php echo $current_page === 'reports.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">📈 Reports</a>
-                
-                <!-- Settings Menu Group -->
-                <div class="sidebar-menu-group">
-                    <button class="sidebar-menu-toggle" onclick="toggleMenu(event, 'settings-menu')">
-                        ⚙️ Settings
-                        <span class="toggle-icon">▼</span>
-                    </button>
-                    <div class="sidebar-submenu" id="settings-menu">
-                        <a href="settings.php">General Settings</a>
-                        <a href="settings.php?tab=system">System Settings</a>
-                    </div>
-                </div>
-                
+                <a href="settings.php">⚙️ Settings</a>
                 <a href="../auth/logout.php" style="margin-top: 20px; border-top: 1px solid #34495e; padding-top: 15px;">🚪 Logout</a>
             </nav>
         </aside>

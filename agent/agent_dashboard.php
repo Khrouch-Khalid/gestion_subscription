@@ -143,7 +143,7 @@ $expiringList = $stmt->fetchAll();
 
         .section-title a {
             font-size: 12px;
-            color: #667eea;
+            color: #ff6b5b;
             text-decoration: none;
             font-weight: 500;
         }
@@ -206,7 +206,7 @@ $expiringList = $stmt->fetchAll();
         }
 
         .action-btn {
-            background-color: #667eea;
+            background-color: #ff6b5b;
             color: white;
             padding: 15px 20px;
             border-radius: 6px;
@@ -265,7 +265,7 @@ $expiringList = $stmt->fetchAll();
         }
 
         .client-name a {
-            color: #667eea;
+            color: #ff6b5b;
             text-decoration: none;
         }
 

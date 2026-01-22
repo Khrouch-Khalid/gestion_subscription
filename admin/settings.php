@@ -167,6 +167,7 @@ try {
         .tab-content.active {
             display: block;
         }
+
         
         .form-group {
             margin-bottom: 20px;
@@ -318,18 +319,7 @@ try {
                 </div>
                 
                 <a href="reports.php">📈 Reports</a>
-                
-                <!-- Settings Menu Group -->
-                <div class="sidebar-menu-group">
-                    <button class="sidebar-menu-toggle" onclick="toggleMenu(event, 'settings-menu')">
-                        ⚙️ Settings
-                        <span class="toggle-icon">▼</span>
-                    </button>
-                    <div class="sidebar-submenu" id="settings-menu">
-                        <a href="settings.php" <?php echo $activeTab === 'general' || (empty($activeTab) || $activeTab === '') ? 'style="background-color: #fff0ed; color: #ff6b5b; border-left-color: #ff6b5b;"' : ''; ?>>General Settings</a>
-                        <a href="settings.php?tab=password" <?php echo $activeTab === 'password' ? 'style="background-color: #fff0ed; color: #ff6b5b; border-left-color: #ff6b5b;"' : ''; ?>>Change Password</a>
-                    </div>
-                </div>
+                <a href="settings.php">⚙️ Settings</a>
                 
                 <a href="../auth/logout.php" style="margin-top: 20px; border-top: 1px solid #34495e; padding-top: 15px;">🚪 Logout</a>
             </nav>

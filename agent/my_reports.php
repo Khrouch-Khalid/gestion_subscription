@@ -153,7 +153,7 @@ $subscriptions_report = $stmt->fetchAll();
 
         .section-title a {
             font-size: 12px;
-            color: #667eea;
+            color: #ff6b5b;
             text-decoration: none;
             font-weight: 500;
         }
@@ -230,17 +230,18 @@ $subscriptions_report = $stmt->fetchAll();
             font-weight: 500;
             transition: all 0.3s ease;
             font-size: 14px;
+            text-decoration: none;
         }
         
         .report-btn:hover {
-            border-color: #667eea;
-            color: #667eea;
+            border-color: #ff6b5b;
+            color: #ff6b5b;
         }
         
         .report-btn.active {
-            background-color: #667eea;
+            background-color: #ff6b5b;
             color: white;
-            border-color: #667eea;
+            border-color: #ff6b5b;
         }
 
         .no-data {
@@ -270,7 +271,7 @@ $subscriptions_report = $stmt->fetchAll();
         .revenue-bar {
             flex: 1;
             height: 30px;
-            background: #667eea;
+            background: #ff6b5b;
             border-radius: 4px;
             margin: 0 15px;
             display: flex;
@@ -338,7 +339,44 @@ $subscriptions_report = $stmt->fetchAll();
 <body>
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <?php include __DIR__ . '/../includes/agent/agent_sidebar.php'; ?>
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Agent Panel</h2>
+                <p><?php echo htmlspecialchars($_SESSION['full_name']); ?></p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="agent_dashboard.php">📊 Dashboard</a>
+                
+                <!-- Clients Menu Group -->
+                <div class="sidebar-menu-group">
+                    <button class="sidebar-menu-toggle" onclick="toggleMenu(event, 'clients-menu')">
+                        👥 Clients
+                        <span class="toggle-icon">▼</span>
+                    </button>
+                    <div class="sidebar-submenu" id="clients-menu">
+                        <a href="manage_clients.php">Manage Clients</a>
+                        <a href="add_client.php">Add New Client</a>
+                    </div>
+                </div>
+                
+                <!-- Subscriptions Menu Group -->
+                <div class="sidebar-menu-group">
+                    <button class="sidebar-menu-toggle" onclick="toggleMenu(event, 'subscriptions-menu')">
+                        📋 Subscriptions
+                        <span class="toggle-icon">▼</span>
+                    </button>
+                    <div class="sidebar-submenu" id="subscriptions-menu">
+                        <a href="manage_subscriptions.php">Manage Subscriptions</a>
+                        <a href="add_subscription.php">Add New Subscription</a>
+                    </div>
+                </div>
+                
+                <a href="my_reports.php" style="<?php echo $current_page === 'my_reports.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">📈 Reports</a>
+                <a href="agent_settings.php">⚙️ Settings</a>
+                
+                <a href="../auth/logout.php" style="margin-top: 20px; border-top: 1px solid #34495e; padding-top: 15px;">🚪 Logout</a>
+            </nav>
+        </aside>
 
         <!-- Main Content -->
         <main class="main-content">
@@ -547,7 +585,7 @@ $subscriptions_report = $stmt->fetchAll();
                             <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #eee;">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div style="font-size: 14px; color: #666;">Total Revenue (12 Months)</div>
-                                    <div style="font-size: 24px; font-weight: 700; color: #667eea;"><?php echo formatCurrency($total_revenue); ?></div>
+                                    <div style="font-size: 24px; font-weight: 700; color: #ff6b5b;"><?php echo formatCurrency($total_revenue); ?></div>
                                 </div>
                             </div>
 

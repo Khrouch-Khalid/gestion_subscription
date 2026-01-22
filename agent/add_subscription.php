@@ -212,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .form-actions button[type="submit"] {
-            background-color: #667eea;
+            background-color: #ff6b5b;
             color: white;
         }
         

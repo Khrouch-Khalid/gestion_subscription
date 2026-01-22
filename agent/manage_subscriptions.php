@@ -147,7 +147,7 @@ $stats = $stmt->fetch();
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #ff6b5b;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
@@ -159,7 +159,7 @@ $stats = $stmt->fetch();
         
         .btn-filter {
             padding: 10px 24px;
-            background-color: #667eea;
+            background-color: #ff6b5b;
             color: white;
             border: none;
             border-radius: 6px;
@@ -352,7 +352,7 @@ $stats = $stmt->fetch();
                 <p><?php echo htmlspecialchars($_SESSION['full_name']); ?></p>
             </div>
             <nav class="sidebar-nav">
-                <a href="agent_dashboard.php" style="<?php echo $current_page === 'agent_dashboard.php' ? 'background-color: #667eea; color: white;' : ''; ?>">📊 Dashboard</a>
+                <a href="agent_dashboard.php" style="<?php echo $current_page === 'agent_dashboard.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">📊 Dashboard</a>
                 
                 <!-- Clients Menu Group -->
                 <div class="sidebar-menu-group">
@@ -373,16 +373,16 @@ $stats = $stmt->fetch();
                         <span class="toggle-icon">▼</span>
                     </button>
                     <div class="sidebar-submenu active" id="subscriptions-menu">
-                        <a href="manage_subscriptions.php">Manage Subscriptions</a>
+                        <a href="manage_subscriptions.php" style="<?php echo $current_page === 'manage_subscriptions.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">Manage Subscriptions</a>
                         <a href="add_subscription.php">Add Subscription</a>
                     </div>
                 </div>
                 
                 <!-- Reports Menu Group -->
-                <a href="my_reports.php" style="<?php echo $current_page === 'my_reports.php' ? 'background-color: #667eea; color: white;' : ''; ?>">📈 Reports</a>
+                <a href="my_reports.php" style="<?php echo $current_page === 'my_reports.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">📈 Reports</a>
                 
                 <!-- Settings -->
-                <a href="agent_settings.php" style="<?php echo $current_page === 'agent_settings.php' ? 'background-color: #667eea; color: white;' : ''; ?>">⚙️ Settings</a>
+                <a href="agent_settings.php" style="<?php echo $current_page === 'agent_settings.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">⚙️ Settings</a>
                 
                 <a href="../auth/logout.php" style="margin-top: 20px; border-top: 1px solid #34495e; padding-top: 15px;">🚪 Logout</a>
             </nav>
@@ -454,7 +454,7 @@ $stats = $stmt->fetch();
                     <div class="section-title">📋 Subscriptions List</div>
                     <?php if (empty($subscriptions)): ?>
                         <div class="no-data">
-                            <p>No subscriptions found. <a href="add_subscription.php" style="color: #667eea; font-weight: 600;">Create one now</a></p>
+                            <p>No subscriptions found. <a href="add_subscription.php" style="color: #ff6b5b; font-weight: 600;">Create one now</a></p>
                         </div>
                     <?php else: ?>
                         <table>

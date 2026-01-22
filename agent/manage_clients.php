@@ -144,12 +144,12 @@ $stats = $stmt->fetch();
         .filter-item input:focus,
         .filter-item select:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #ff6b5b;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
         .filter-btn {
-            padding: 10px 20px;
+            padding: 12px 25px;
             background-color: #667eea;
             color: white;
             border: none;
@@ -157,26 +157,31 @@ $stats = $stmt->fetch();
             cursor: pointer;
             font-weight: 600;
             transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 14px;
         }
-        
+
         .filter-btn:hover {
             background-color: #5568d3;
             transform: translateY(-2px);
         }
         
         .reset-btn {
-            padding: 10px 20px;
-            background-color: #6c757d;
+            padding: 12px 25px;
+            background-color: #ff6b5b;
             color: white;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
             transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 14px;
         }
         
         .reset-btn:hover {
-            background-color: #5a6268;
+            background-color: #ff5244;
+            transform: translateY(-2px);
         }
 
         .data-section {
@@ -350,7 +355,7 @@ $stats = $stmt->fetch();
                 <p><?php echo htmlspecialchars($_SESSION['full_name']); ?></p>
             </div>
             <nav class="sidebar-nav">
-                <a href="agent_dashboard.php" style="<?php echo $current_page === 'agent_dashboard.php' ? 'background-color: #667eea; color: white;' : ''; ?>">📊 Dashboard</a>
+                <a href="agent_dashboard.php" style="<?php echo $current_page === 'agent_dashboard.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">📊 Dashboard</a>
                 
                 <!-- Clients Menu Group -->
                 <div class="sidebar-menu-group">
@@ -380,7 +385,7 @@ $stats = $stmt->fetch();
                 <a href="my_reports.php">📈 Reports</a>
                 
                 <!-- Settings -->
-                <a href="agent_settings.php" style="<?php echo $current_page === 'agent_settings.php' ? 'background-color: #667eea; color: white;' : ''; ?>">⚙️ Settings</a>
+                <a href="agent_settings.php" style="<?php echo $current_page === 'agent_settings.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">⚙️ Settings</a>
                 
                 <a href="../auth/logout.php" style="margin-top: 20px; border-top: 1px solid #34495e; padding-top: 15px;">🚪 Logout</a>
             </nav>
@@ -449,7 +454,7 @@ $stats = $stmt->fetch();
                     <div class="section-title">👥 Clients List</div>
                     <?php if (empty($clients)): ?>
                         <div class="no-data">
-                            <p>No clients found. <a href="add_client.php" style="color: #667eea; font-weight: 600;">Create one now</a></p>
+                            <p>No clients found. <a href="add_client.php" style="color: #ff6b5b; font-weight: 600;">Create one now</a></p>
                         </div>
                     <?php else: ?>
                         <table>

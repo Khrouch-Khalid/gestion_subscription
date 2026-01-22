@@ -88,7 +88,7 @@ $subStats = $stmt->fetch();
             background-color: #f8f9fa;
             padding: 15px;
             border-radius: 4px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #ff6b5b;
             text-align: center;
         }
         
@@ -259,7 +259,7 @@ $subStats = $stmt->fetch();
         }
         
         .client-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #ff6b5b 0%, #764ba2 100%);
             color: white;
             padding: 20px;
             border-radius: 8px;
@@ -302,7 +302,7 @@ $subStats = $stmt->fetch();
                 <p><?php echo htmlspecialchars($_SESSION['full_name']); ?></p>
             </div>
             <nav class="sidebar-nav">
-                <a href="agent_dashboard.php" style="<?php echo $current_page === 'agent_dashboard.php' ? 'background-color: #667eea; color: white;' : ''; ?>">📊 Dashboard</a>
+                <a href="agent_dashboard.php" style="<?php echo $current_page === 'agent_dashboard.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">📊 Dashboard</a>
                 
                 <!-- Clients Menu Group -->
                 <div class="sidebar-menu-group">
@@ -329,10 +329,10 @@ $subStats = $stmt->fetch();
                 </div>
                 
                 <!-- Reports Menu Group -->
-                <a href="my_reports.php" style="<?php echo $current_page === 'my_reports.php' ? 'background-color: #667eea; color: white;' : ''; ?>">📈 Reports</a>
+                <a href="my_reports.php" style="<?php echo $current_page === 'my_reports.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">📈 Reports</a>
                 
                 <!-- Settings -->
-                <a href="agent_settings.php" style="<?php echo $current_page === 'agent_settings.php' ? 'background-color: #667eea; color: white;' : ''; ?>">⚙️ Settings</a>
+                <a href="agent_settings.php" style="<?php echo $current_page === 'agent_settings.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">⚙️ Settings</a>
                 
                 <a href="../auth/logout.php" style="margin-top: 20px; border-top: 1px solid #34495e; padding-top: 15px;">🚪 Logout</a>
             </nav>
@@ -446,7 +446,7 @@ $subStats = $stmt->fetch();
                     <div class="card-body">
                         <?php if (empty($subscriptions)): ?>
                             <div class="no-data">
-                                <p>No subscriptions found. <a href="add_subscription.php" style="color: #667eea;">Add one now</a></p>
+                                <p>No subscriptions found. <a href="add_subscription.php" style="color: #ff6b5b;">Add one now</a></p>
                             </div>
                         <?php else: ?>
                             <table>

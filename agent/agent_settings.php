@@ -105,7 +105,7 @@ $agent = $stmt->fetch();
 
         .form-group input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #ff6b5b;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
@@ -168,7 +168,44 @@ $agent = $stmt->fetch();
 <body>
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <?php include __DIR__ . '/../includes/agent/agent_sidebar.php'; ?>
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Agent Panel</h2>
+                <p><?php echo htmlspecialchars($_SESSION['full_name']); ?></p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="agent_dashboard.php">📊 Dashboard</a>
+                
+                <!-- Clients Menu Group -->
+                <div class="sidebar-menu-group">
+                    <button class="sidebar-menu-toggle" onclick="toggleMenu(event, 'clients-menu')">
+                        👥 Clients
+                        <span class="toggle-icon">▼</span>
+                    </button>
+                    <div class="sidebar-submenu" id="clients-menu">
+                        <a href="manage_clients.php">Manage Clients</a>
+                        <a href="add_client.php">Add New Client</a>
+                    </div>
+                </div>
+                
+                <!-- Subscriptions Menu Group -->
+                <div class="sidebar-menu-group">
+                    <button class="sidebar-menu-toggle" onclick="toggleMenu(event, 'subscriptions-menu')">
+                        📋 Subscriptions
+                        <span class="toggle-icon">▼</span>
+                    </button>
+                    <div class="sidebar-submenu" id="subscriptions-menu">
+                        <a href="manage_subscriptions.php">Manage Subscriptions</a>
+                        <a href="add_subscription.php">Add New Subscription</a>
+                    </div>
+                </div>
+                
+                <a href="my_reports.php">📈 Reports</a>
+                <a href="agent_settings.php" style="<?php echo $current_page === 'agent_settings.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">⚙️ Settings</a>
+                
+                <a href="../auth/logout.php" style="margin-top: 20px; border-top: 1px solid #34495e; padding-top: 15px;">🚪 Logout</a>
+            </nav>
+        </aside>
 
         <!-- Main Content -->
         <main class="main-content">
