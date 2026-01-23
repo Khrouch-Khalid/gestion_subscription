@@ -303,7 +303,7 @@ $pageTitle = "Admin Dashboard";
                             Filter
                         </button>
                         <?php if ($selected_agent_id): ?>
-                            <a href="admin_dashboard.php" style="padding: 10px 25px; background-color: #ff6b5b; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; text-decoration: none; transition: all 0.3s ease;">
+                            <a href="admin_dashboard.php" style="padding: 8px 18px; background-color: #ff6b5b; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; text-decoration: none; transition: all 0.3s ease;">
                                 Clear Filter
                             </a>
                         <?php endif; ?>
@@ -344,7 +344,6 @@ $pageTitle = "Admin Dashboard";
                     </div>
                 </div>
 
-                <!-- Content Grid -->
                 <div class="content-grid">
                     <!-- Left Column -->
                     <div>
