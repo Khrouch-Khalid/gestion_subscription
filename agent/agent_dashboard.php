@@ -7,6 +7,282 @@ $conn = getDBConnection();
 $agent_id = $_SESSION['user_id'];
 $current_page = basename($_SERVER['PHP_SELF']);
 
+// Handle PDF download
+if (isset($_GET['download_pdf'])) {
+    // Simple HTML to PDF conversion using a library approach
+    // Check if a PDF library is available, otherwise create a formatted HTML document
+    
+    ob_start();
+    ?>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #333; border-bottom: 3px solid #667eea; padding-bottom: 10px; }
+            h2 { color: #667eea; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+            table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+            th { background-color: #667eea; color: white; padding: 10px; text-align: left; }
+            td { padding: 8px; border-bottom: 1px solid #ddd; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .no-data { text-align: center; color: #999; padding: 20px; }
+            .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #999; font-size: 12px; }
+        </style>
+    </head>
+    <body>
+        <h1>Agent Data Report</h1>
+        <p><strong>Agent:</strong> <?php echo htmlspecialchars($_SESSION['full_name']); ?></p>
+        <p><strong>Generated:</strong> <?php echo date('Y-m-d H:i:s'); ?></p>
+        
+        <?php
+        // Get total clients
+        $stmt = $conn->prepare("SELECT COUNT(*) as total FROM clients WHERE agent_id = ?");
+        $stmt->execute([$agent_id]);
+        $total_clients = $stmt->fetch()['total'];
+        
+        // Get total subscriptions and revenue
+        $stmt = $conn->prepare("
+            SELECT COUNT(*) as total, SUM(s.price) as total_revenue
+            FROM subscriptions s
+            JOIN clients c ON s.client_id = c.client_id
+            WHERE c.agent_id = ?
+        ");
+        $stmt->execute([$agent_id]);
+        $sub_data = $stmt->fetch();
+        $total_subscriptions = $sub_data['total'];
+        $total_revenue = $sub_data['total_revenue'] ?? 0;
+        ?>
+        
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0;">
+            <div style="background-color: #f0f4ff; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                <p style="margin: 0; color: #999; font-size: 12px;">Total Clients</p>
+                <h3 style="margin: 5px 0 0 0; color: #667eea; font-size: 28px;"><?php echo $total_clients; ?></h3>
+            </div>
+            <div style="background-color: #f0f4ff; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                <p style="margin: 0; color: #999; font-size: 12px;">Total Subscriptions</p>
+                <h3 style="margin: 5px 0 0 0; color: #667eea; font-size: 28px;"><?php echo $total_subscriptions; ?></h3>
+            </div>
+            <div style="background-color: #f0f4ff; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                <p style="margin: 0; color: #999; font-size: 12px;">Total Revenue</p>
+                <h3 style="margin: 5px 0 0 0; color: #667eea; font-size: 28px;"><?php echo formatMoney($total_revenue); ?></h3>
+            </div>
+        </div>
+        
+        <h2>Clients</h2>
+        <?php
+        $stmt = $conn->prepare("SELECT client_id, full_name, email, phone, status, created_at FROM clients WHERE agent_id = ? ORDER BY created_at DESC");
+        $stmt->execute([$agent_id]);
+        $clients = $stmt->fetchAll();
+        
+        if (!empty($clients)):
+        ?>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Subscriptions</th>
+                        <th>Status</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($clients as $client): 
+                        // Count subscriptions for this client
+                        $sub_count_stmt = $conn->prepare("SELECT COUNT(*) as count FROM subscriptions WHERE client_id = ?");
+                        $sub_count_stmt->execute([$client['client_id']]);
+                        $sub_count = $sub_count_stmt->fetch()['count'];
+                    ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($client['full_name']); ?></td>
+                            <td><?php echo htmlspecialchars($client['email']); ?></td>
+                            <td><?php echo htmlspecialchars($client['phone']); ?></td>
+                            <td><?php echo $sub_count; ?></td>
+                            <td><?php echo ucfirst(htmlspecialchars($client['status'])); ?></td>
+                            <td><?php echo formatDate($client['created_at']); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <p class="no-data">No clients found</p>
+        <?php endif; ?>
+        
+        <h2>Subscriptions</h2>
+        <?php
+        $stmt = $conn->prepare("
+            SELECT s.subscription_id, c.full_name, s.subscription_type, s.price, s.status, s.created_at, s.end_date
+            FROM subscriptions s
+            JOIN clients c ON s.client_id = c.client_id
+            WHERE c.agent_id = ?
+            ORDER BY s.created_at DESC
+        ");
+        $stmt->execute([$agent_id]);
+        $subscriptions = $stmt->fetchAll();
+        
+        if (!empty($subscriptions)):
+        ?>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Client Name</th>
+                        <th>Type</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($subscriptions as $sub): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($sub['full_name']); ?></td>
+                            <td><?php echo htmlspecialchars($sub['subscription_type']); ?></td>
+                            <td><?php echo formatMoney($sub['price']); ?></td>
+                            <td><?php echo ucfirst(htmlspecialchars($sub['status'])); ?></td>
+                            <td><?php echo formatDate($sub['created_at']); ?></td>
+                            <td><?php echo formatDate($sub['end_date']); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <p class="no-data">No subscriptions found</p>
+        <?php endif; ?>
+        
+        <h2>Payments</h2>
+        <?php
+        $stmt = $conn->query("SHOW TABLES LIKE 'payments'");
+        if ($stmt->rowCount() > 0):
+            $stmt = $conn->prepare("
+                SELECT p.payment_id, c.full_name, s.subscription_type, p.amount, p.payment_date, p.status
+                FROM payments p
+                JOIN subscriptions s ON p.subscription_id = s.subscription_id
+                JOIN clients c ON s.client_id = c.client_id
+                WHERE c.agent_id = ?
+                ORDER BY p.payment_date DESC
+            ");
+            $stmt->execute([$agent_id]);
+            $payments = $stmt->fetchAll();
+            
+            if (!empty($payments)):
+            ?>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Payment ID</th>
+                            <th>Client Name</th>
+                            <th>Subscription Type</th>
+                            <th>Amount</th>
+                            <th>Payment Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($payments as $payment): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($payment['payment_id']); ?></td>
+                                <td><?php echo htmlspecialchars($payment['full_name']); ?></td>
+                                <td><?php echo htmlspecialchars($payment['subscription_type']); ?></td>
+                                <td><?php echo formatMoney($payment['amount']); ?></td>
+                                <td><?php echo formatDate($payment['payment_date']); ?></td>
+                                <td><?php echo ucfirst(htmlspecialchars($payment['status'])); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else: ?>
+                <p class="no-data">No payments found</p>
+            <?php endif;
+        else: ?>
+            <p class="no-data">Payments table not available</p>
+        <?php endif; ?>
+        
+        <div class="footer">
+            <p>This document was generated automatically by Subscription Manager</p>
+        </div>
+    </body>
+    </html>
+    <?php
+    $html = ob_get_clean();
+    
+    // Output as HTML that can be printed to PDF by browser
+    header('Content-Type: text/html; charset=utf-8');
+    header('Content-Disposition: attachment; filename="agent_data_' . date('Y-m-d_H-i-s') . '.html"');
+    echo $html;
+    exit();
+}
+
+// Handle CSV download
+if (isset($_GET['download_csv'])) {
+    // Create CSV file
+    $filename = 'agent_data_' . date('Y-m-d_H-i-s') . '.csv';
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    
+    $output = fopen('php://output', 'w');
+    
+    // Add BOM for UTF-8
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+    
+    // === CLIENTS SECTION ===
+    fputcsv($output, ['CLIENTS DATA']);
+    fputcsv($output, ['Client ID', 'Full Name', 'Email', 'Phone', 'Status', 'Created At']);
+    
+    $stmt = $conn->prepare("SELECT client_id, full_name, email, phone, status, created_at FROM clients WHERE agent_id = ? ORDER BY created_at DESC");
+    $stmt->execute([$agent_id]);
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        fputcsv($output, $row);
+    }
+    
+    fputcsv($output, []); // Empty line
+    
+    // === SUBSCRIPTIONS SECTION ===
+    fputcsv($output, ['SUBSCRIPTIONS DATA']);
+    fputcsv($output, ['Subscription ID', 'Client Name', 'Subscription Type', 'Price', 'Status', 'Start Date', 'End Date']);
+    
+    $stmt = $conn->prepare("
+        SELECT s.subscription_id, c.full_name, s.subscription_type, s.price, s.status, s.created_at, s.end_date
+        FROM subscriptions s
+        JOIN clients c ON s.client_id = c.client_id
+        WHERE c.agent_id = ?
+        ORDER BY s.created_at DESC
+    ");
+    $stmt->execute([$agent_id]);
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        fputcsv($output, $row);
+    }
+    
+    fputcsv($output, []); // Empty line
+    
+    // === PAYMENTS SECTION ===
+    fputcsv($output, ['PAYMENTS DATA']);
+    fputcsv($output, ['Payment ID', 'Client Name', 'Subscription Type', 'Amount', 'Payment Date', 'Status']);
+    
+    // Check if payments table exists
+    $stmt = $conn->query("SHOW TABLES LIKE 'payments'");
+    if ($stmt->rowCount() > 0) {
+        $stmt = $conn->prepare("
+            SELECT p.payment_id, c.full_name, s.subscription_type, p.amount, p.payment_date, p.status
+            FROM payments p
+            JOIN subscriptions s ON p.subscription_id = s.subscription_id
+            JOIN clients c ON s.client_id = c.client_id
+            WHERE c.agent_id = ?
+            ORDER BY p.payment_date DESC
+        ");
+        $stmt->execute([$agent_id]);
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            fputcsv($output, $row);
+        }
+    } else {
+        fputcsv($output, ['No payment records found']);
+    }
+    
+    fclose($output);
+    exit();
+}
+
 // Get agent's statistics
 // Total Clients
 $stmt = $conn->prepare("SELECT COUNT(*) as count FROM clients WHERE agent_id = ?");
@@ -44,6 +320,17 @@ $stmt = $conn->prepare("SELECT client_id, full_name, email, phone, created_at, s
                        LIMIT 5");
 $stmt->execute([$agent_id]);
 $recentClients = $stmt->fetchAll();
+
+// Get recent subscriptions
+$stmt = $conn->prepare("SELECT s.subscription_id, s.subscription_name, s.subscription_type, 
+                              s.price, s.status, s.created_at, c.full_name, c.client_id
+                       FROM subscriptions s
+                       JOIN clients c ON s.client_id = c.client_id
+                       WHERE c.agent_id = ?
+                       ORDER BY s.created_at DESC
+                       LIMIT 5");
+$stmt->execute([$agent_id]);
+$recentSubscriptions = $stmt->fetchAll();
 
 // Get expiring subscriptions for display
 $stmt = $conn->prepare("SELECT c.full_name, s.subscription_name, s.end_date, 
@@ -129,6 +416,7 @@ $expiringList = $stmt->fetchAll();
             border-radius: 8px;
             padding: 25px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
         }
 
         .section-title {
@@ -192,11 +480,13 @@ $expiringList = $stmt->fetchAll();
         .badge-active {
             background-color: #d4edda;
             color: #155724;
+            display: inline-block;
         }
 
         .badge-inactive {
             background-color: #f8d7da;
             color: #721c24;
+            display: inline-block;
         }
 
         .action-grid {
@@ -337,6 +627,13 @@ $expiringList = $stmt->fetchAll();
             </header>
 
             <div class="content-area">
+                <!-- Download Button -->
+                <div style="margin-bottom: 30px;">
+                    <a href="agent_dashboard.php?download_pdf=1" style="display: inline-block; padding: 12px 25px; background-color: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; text-decoration: none; transition: all 0.3s ease;">
+                        📥 Download Data (PDF)
+                    </a>
+                </div>
+
                 <!-- Overview Section -->
                 <div class="overview-section">
                     <div class="overview-title">📊 Dashboard Overview</div>
@@ -391,6 +688,46 @@ $expiringList = $stmt->fetchAll();
                                             <td>
                                                 <span class="badge-sm" style="background-color: #fff3cd; color: #856404;">
                                                     <?php echo date('d/m/Y', strtotime($sub['end_date'])); ?>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Recent Subscriptions Section -->
+                        <div class="data-section">
+                            <div class="section-title">
+                                📋 Recent Subscriptions
+                                <a href="manage_subscriptions.php">View All</a>
+                            </div>
+                            <?php if (empty($recentSubscriptions)): ?>
+                                <p style="color: #999; text-align: center; padding: 40px 0;">No subscriptions yet.</p>
+                            <?php else: ?>
+                                <table class="table-simple">
+                                    <thead>
+                                        <tr>
+                                            <th>Client</th>
+                                            <th>Type</th>
+                                            <th>Price</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($recentSubscriptions as $sub): ?>
+                                        <tr>
+                                            <td>
+                                                <a href="view_client.php?id=<?php echo $sub['client_id']; ?>" style="color: #ff6b5b; text-decoration: none;">
+                                                    <?php echo htmlspecialchars($sub['full_name']); ?>
+                                                </a>
+                                            </td>
+                                            <td><?php echo htmlspecialchars($sub['subscription_type']); ?></td>
+                                            <td><?php echo formatCurrency($sub['price']); ?></td>
+                                            <td>
+                                                <span class="badge-sm <?php echo $sub['status'] === 'active' ? 'badge-active' : 'badge-inactive'; ?>">
+                                                    <?php echo ucfirst($sub['status']); ?>
                                                 </span>
                                             </td>
                                         </tr>

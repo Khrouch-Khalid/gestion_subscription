@@ -65,11 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $status
             ]);
             
-            $message = 'Client added successfully!';
-            $messageType = 'success';
-            
-            // Clear form
-            $_POST = [];
+            // Redirect to dashboard after successful addition
+            header('Location: agent_dashboard.php');
+            exit;
         } catch (PDOException $e) {
             $message = 'Error adding client: ' . $e->getMessage();
             $messageType = 'danger';

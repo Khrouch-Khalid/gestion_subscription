@@ -91,11 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $status
             ]);
             
-            $message = 'Subscription added successfully!';
-            $messageType = 'success';
-            
-            // Clear form
-            $_POST = [];
+            // Redirect to dashboard after successful addition
+            header('Location: agent_dashboard.php');
+            exit;
         } catch (PDOException $e) {
             $message = 'Error adding subscription: ' . $e->getMessage();
             $messageType = 'danger';
@@ -393,7 +391,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="form-group">
                                         <label for="end_date">End Date *</label>
                                         <input type="date" id="end_date" name="end_date" 
-                                               value="<?php echo htmlspecialchars($_POST['end_date'] ?? date('Y-m-d', strtotime('+1 year'))); ?>" 
+                                               value="<?php echo htmlspecialchars($_POST['end_date'] ?? date('Y-m-d', strtotime('+1 month'))); ?>" 
                                                required>
                                     </div>
                                 </div>

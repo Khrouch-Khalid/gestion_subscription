@@ -84,13 +84,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $agent_id
             ]);
             
-            $message = 'Client updated successfully!';
-            $messageType = 'success';
-            
-            // Refresh client data
-            $stmt = $conn->prepare("SELECT * FROM clients WHERE client_id = ? AND agent_id = ?");
-            $stmt->execute([$client_id, $agent_id]);
-            $client = $stmt->fetch();
+            // Redirect to dashboard after successful update
+            header('Location: agent_dashboard.php');
+            exit;
         } catch (PDOException $e) {
             $message = 'Error updating client: ' . $e->getMessage();
             $messageType = 'danger';
