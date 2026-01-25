@@ -7,11 +7,87 @@ $conn = getDBConnection();
 $agent_id = $_SESSION['user_id'];
 $current_page = basename($_SERVER['PHP_SELF']);
 
+// Build date filter conditions
+$dateFilter = '';
+$dateParams = [];
+if (isset($_GET['download_pdf']) || isset($_GET['download_csv'])) {
+    $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : null;
+    $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : null;
+    
+    if ($start_date && $end_date) {
+        // Validate dates
+        if (strtotime($start_date) && strtotime($end_date)) {
+            $dateFilter = " AND DATE(created_at) BETWEEN ? AND ?";
+            $dateParams = [$start_date, $end_date];
+        }
+    }
+}
+
 // Handle PDF download
 if (isset($_GET['download_pdf'])) {
-    // Simple HTML to PDF conversion using a library approach
-    // Check if a PDF library is available, otherwise create a formatted HTML document
+    // Verify database connection
+    if (!$conn) {
+        die('Database connection error. Please try again.');
+    }
     
+    // Fetch all data BEFORE output buffering
+    $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : null;
+    $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : null;
+    
+    $dateFilter = '';
+    $dateParams = [];
+    if ($start_date && $end_date) {
+        if (strtotime($start_date) && strtotime($end_date)) {
+            $dateFilter = " AND DATE(created_at) BETWEEN ? AND ?";
+            $dateParams = [$start_date, $end_date];
+        }
+    }
+    
+    // Get total clients with date filter
+    $sql = "SELECT COUNT(*) as total FROM clients WHERE agent_id = ?" . $dateFilter;
+    $params = [$agent_id];
+    $params = array_merge($params, $dateParams);
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
+    $total_clients = $stmt->fetch()['total'];
+    
+    // Get total subscriptions and revenue with date filter
+    $sql = "
+        SELECT COUNT(*) as total, SUM(s.price) as total_revenue
+        FROM subscriptions s
+        JOIN clients c ON s.client_id = c.client_id
+        WHERE c.agent_id = ?" . str_replace('created_at', 's.created_at', $dateFilter);
+    $params = [$agent_id];
+    $params = array_merge($params, $dateParams);
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
+    $sub_data = $stmt->fetch();
+    $total_subscriptions = $sub_data['total'];
+    $total_revenue = $sub_data['total_revenue'] ?? 0;
+    
+    // Get clients
+    $sql = "SELECT client_id, full_name, email, phone, status, created_at FROM clients WHERE agent_id = ?" . $dateFilter . " ORDER BY created_at DESC";
+    $params = [$agent_id];
+    $params = array_merge($params, $dateParams);
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
+    $pdf_clients = $stmt->fetchAll();
+    
+    // Get subscriptions
+    $sql = "
+        SELECT s.subscription_id, c.full_name, s.subscription_type, s.price, s.status, s.created_at, s.end_date
+        FROM subscriptions s
+        JOIN clients c ON s.client_id = c.client_id
+        WHERE c.agent_id = ?" . str_replace('created_at', 's.created_at', $dateFilter) . "
+        ORDER BY s.created_at DESC
+    ";
+    $params = [$agent_id];
+    $params = array_merge($params, $dateParams);
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
+    $pdf_subscriptions = $stmt->fetchAll();
+    
+    // Now start output buffering
     ob_start();
     ?>
     <html>
@@ -33,25 +109,9 @@ if (isset($_GET['download_pdf'])) {
         <h1>Agent Data Report</h1>
         <p><strong>Agent:</strong> <?php echo htmlspecialchars($_SESSION['full_name']); ?></p>
         <p><strong>Generated:</strong> <?php echo date('Y-m-d H:i:s'); ?></p>
-        
-        <?php
-        // Get total clients
-        $stmt = $conn->prepare("SELECT COUNT(*) as total FROM clients WHERE agent_id = ?");
-        $stmt->execute([$agent_id]);
-        $total_clients = $stmt->fetch()['total'];
-        
-        // Get total subscriptions and revenue
-        $stmt = $conn->prepare("
-            SELECT COUNT(*) as total, SUM(s.price) as total_revenue
-            FROM subscriptions s
-            JOIN clients c ON s.client_id = c.client_id
-            WHERE c.agent_id = ?
-        ");
-        $stmt->execute([$agent_id]);
-        $sub_data = $stmt->fetch();
-        $total_subscriptions = $sub_data['total'];
-        $total_revenue = $sub_data['total_revenue'] ?? 0;
-        ?>
+        <?php if (isset($_GET['start_date']) && isset($_GET['end_date'])): ?>
+            <p><strong>Period:</strong> <?php echo date('d/m/Y', strtotime($_GET['start_date'])); ?> to <?php echo date('d/m/Y', strtotime($_GET['end_date'])); ?></p>
+        <?php endif; ?>
         
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0;">
             <div style="background-color: #f0f4ff; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
@@ -69,36 +129,23 @@ if (isset($_GET['download_pdf'])) {
         </div>
         
         <h2>Clients</h2>
-        <?php
-        $stmt = $conn->prepare("SELECT client_id, full_name, email, phone, status, created_at FROM clients WHERE agent_id = ? ORDER BY created_at DESC");
-        $stmt->execute([$agent_id]);
-        $clients = $stmt->fetchAll();
-        
-        if (!empty($clients)):
-        ?>
+        <?php if (!empty($pdf_clients)): ?>
             <table>
                 <thead>
                     <tr>
                         <th>Full Name</th>
                         <th>Email</th>
                         <th>Phone</th>
-                        <th>Subscriptions</th>
                         <th>Status</th>
                         <th>Created At</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($clients as $client): 
-                        // Count subscriptions for this client
-                        $sub_count_stmt = $conn->prepare("SELECT COUNT(*) as count FROM subscriptions WHERE client_id = ?");
-                        $sub_count_stmt->execute([$client['client_id']]);
-                        $sub_count = $sub_count_stmt->fetch()['count'];
-                    ?>
+                    <?php foreach ($pdf_clients as $client): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($client['full_name']); ?></td>
                             <td><?php echo htmlspecialchars($client['email']); ?></td>
                             <td><?php echo htmlspecialchars($client['phone']); ?></td>
-                            <td><?php echo $sub_count; ?></td>
                             <td><?php echo ucfirst(htmlspecialchars($client['status'])); ?></td>
                             <td><?php echo formatDate($client['created_at']); ?></td>
                         </tr>
@@ -110,19 +157,7 @@ if (isset($_GET['download_pdf'])) {
         <?php endif; ?>
         
         <h2>Subscriptions</h2>
-        <?php
-        $stmt = $conn->prepare("
-            SELECT s.subscription_id, c.full_name, s.subscription_type, s.price, s.status, s.created_at, s.end_date
-            FROM subscriptions s
-            JOIN clients c ON s.client_id = c.client_id
-            WHERE c.agent_id = ?
-            ORDER BY s.created_at DESC
-        ");
-        $stmt->execute([$agent_id]);
-        $subscriptions = $stmt->fetchAll();
-        
-        if (!empty($subscriptions)):
-        ?>
+        <?php if (!empty($pdf_subscriptions)): ?>
             <table>
                 <thead>
                     <tr>
@@ -135,7 +170,7 @@ if (isset($_GET['download_pdf'])) {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($subscriptions as $sub): ?>
+                    <?php foreach ($pdf_subscriptions as $sub): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($sub['full_name']); ?></td>
                             <td><?php echo htmlspecialchars($sub['subscription_type']); ?></td>
@@ -151,56 +186,9 @@ if (isset($_GET['download_pdf'])) {
             <p class="no-data">No subscriptions found</p>
         <?php endif; ?>
         
-        <h2>Payments</h2>
-        <?php
-        $stmt = $conn->query("SHOW TABLES LIKE 'payments'");
-        if ($stmt->rowCount() > 0):
-            $stmt = $conn->prepare("
-                SELECT p.payment_id, c.full_name, s.subscription_type, p.amount, p.payment_date, p.status
-                FROM payments p
-                JOIN subscriptions s ON p.subscription_id = s.subscription_id
-                JOIN clients c ON s.client_id = c.client_id
-                WHERE c.agent_id = ?
-                ORDER BY p.payment_date DESC
-            ");
-            $stmt->execute([$agent_id]);
-            $payments = $stmt->fetchAll();
-            
-            if (!empty($payments)):
-            ?>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Payment ID</th>
-                            <th>Client Name</th>
-                            <th>Subscription Type</th>
-                            <th>Amount</th>
-                            <th>Payment Date</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($payments as $payment): ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($payment['payment_id']); ?></td>
-                                <td><?php echo htmlspecialchars($payment['full_name']); ?></td>
-                                <td><?php echo htmlspecialchars($payment['subscription_type']); ?></td>
-                                <td><?php echo formatMoney($payment['amount']); ?></td>
-                                <td><?php echo formatDate($payment['payment_date']); ?></td>
-                                <td><?php echo ucfirst(htmlspecialchars($payment['status'])); ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            <?php else: ?>
-                <p class="no-data">No payments found</p>
-            <?php endif;
-        else: ?>
-            <p class="no-data">Payments table not available</p>
-        <?php endif; ?>
-        
         <div class="footer">
             <p>This document was generated automatically by Subscription Manager</p>
+            <p><em>To save as PDF: Press Ctrl+P (or Cmd+P on Mac) and select "Save as PDF"</em></p>
         </div>
     </body>
     </html>
@@ -209,7 +197,7 @@ if (isset($_GET['download_pdf'])) {
     
     // Output as HTML that can be printed to PDF by browser
     header('Content-Type: text/html; charset=utf-8');
-    header('Content-Disposition: attachment; filename="agent_data_' . date('Y-m-d_H-i-s') . '.html"');
+    header('Content-Disposition: inline; filename="agent_report_' . date('Y-m-d_H-i-s') . '.html"');
     echo $html;
     exit();
 }
@@ -230,8 +218,11 @@ if (isset($_GET['download_csv'])) {
     fputcsv($output, ['CLIENTS DATA']);
     fputcsv($output, ['Client ID', 'Full Name', 'Email', 'Phone', 'Status', 'Created At']);
     
-    $stmt = $conn->prepare("SELECT client_id, full_name, email, phone, status, created_at FROM clients WHERE agent_id = ? ORDER BY created_at DESC");
-    $stmt->execute([$agent_id]);
+    $sql = "SELECT client_id, full_name, email, phone, status, created_at FROM clients WHERE agent_id = ?" . $dateFilter . " ORDER BY created_at DESC";
+    $params = [$agent_id];
+    $params = array_merge($params, $dateParams);
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         fputcsv($output, $row);
     }
@@ -242,42 +233,22 @@ if (isset($_GET['download_csv'])) {
     fputcsv($output, ['SUBSCRIPTIONS DATA']);
     fputcsv($output, ['Subscription ID', 'Client Name', 'Subscription Type', 'Price', 'Status', 'Start Date', 'End Date']);
     
-    $stmt = $conn->prepare("
+    $sql = "
         SELECT s.subscription_id, c.full_name, s.subscription_type, s.price, s.status, s.created_at, s.end_date
         FROM subscriptions s
         JOIN clients c ON s.client_id = c.client_id
-        WHERE c.agent_id = ?
+        WHERE c.agent_id = ?" . str_replace('created_at', 's.created_at', $dateFilter) . "
         ORDER BY s.created_at DESC
-    ");
-    $stmt->execute([$agent_id]);
+    ";
+    $params = [$agent_id];
+    $params = array_merge($params, $dateParams);
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         fputcsv($output, $row);
     }
     
     fputcsv($output, []); // Empty line
-    
-    // === PAYMENTS SECTION ===
-    fputcsv($output, ['PAYMENTS DATA']);
-    fputcsv($output, ['Payment ID', 'Client Name', 'Subscription Type', 'Amount', 'Payment Date', 'Status']);
-    
-    // Check if payments table exists
-    $stmt = $conn->query("SHOW TABLES LIKE 'payments'");
-    if ($stmt->rowCount() > 0) {
-        $stmt = $conn->prepare("
-            SELECT p.payment_id, c.full_name, s.subscription_type, p.amount, p.payment_date, p.status
-            FROM payments p
-            JOIN subscriptions s ON p.subscription_id = s.subscription_id
-            JOIN clients c ON s.client_id = c.client_id
-            WHERE c.agent_id = ?
-            ORDER BY p.payment_date DESC
-        ");
-        $stmt->execute([$agent_id]);
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            fputcsv($output, $row);
-        }
-    } else {
-        fputcsv($output, ['No payment records found']);
-    }
     
     fclose($output);
     exit();
@@ -629,9 +600,38 @@ $expiringList = $stmt->fetchAll();
             <div class="content-area">
                 <!-- Download Button -->
                 <div style="margin-bottom: 30px;">
-                    <a href="agent_dashboard.php?download_pdf=1" style="display: inline-block; padding: 12px 25px; background-color: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; text-decoration: none; transition: all 0.3s ease;">
-                        📥 Download Data (PDF)
-                    </a>
+                    <button onclick="openDownloadModal()" style="display: inline-block; padding: 12px 25px; background-color: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; text-decoration: none; transition: all 0.3s ease;">
+                        📥 Download Data
+                    </button>
+                </div>
+
+                <!-- Download Modal -->
+                <div id="downloadModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+                    <div style="background-color: #fff; margin: 10% auto; padding: 30px; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <h2 style="margin-top: 0; color: #333;">Download Data Report</h2>
+                        <p style="color: #666;">Select the date range for your data export:</p>
+                        
+                        <form id="downloadForm">
+                            <div style="margin-bottom: 20px;">
+                                <label for="startDate" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Start Date:</label>
+                                <input type="date" id="startDate" name="startDate" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;">
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label for="endDate" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">End Date:</label>
+                                <input type="date" id="endDate" name="endDate" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;">
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px;">
+                                <button type="submit" style="flex: 1; padding: 12px; background-color: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                                    Download PDF
+                                </button>
+                                <button type="button" onclick="closeDownloadModal()" style="flex: 1; padding: 12px; background-color: #999; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
 
                 <!-- Overview Section -->
@@ -805,6 +805,40 @@ $expiringList = $stmt->fetchAll();
                     button.classList.add('expanded');
                 }
             });
+        });
+        
+        // Download Modal Functions
+        function openDownloadModal() {
+            document.getElementById('downloadModal').style.display = 'block';
+        }
+        
+        function closeDownloadModal() {
+            document.getElementById('downloadModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('downloadModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Handle form submission
+        document.getElementById('downloadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (startDate && endDate) {
+                // Validate that end date is not before start date
+                if (new Date(endDate) < new Date(startDate)) {
+                    alert('End date must be after or equal to start date');
+                    return;
+                }
+                window.location.href = 'agent_dashboard.php?download_pdf=1&start_date=' + startDate + '&end_date=' + endDate;
+                closeDownloadModal();
+            }
         });
     </script>
 </body>

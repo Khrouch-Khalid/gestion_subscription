@@ -10,6 +10,20 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $selected_agent_id = isset($_GET['agent_id']) ? (int)$_GET['agent_id'] : null;
 $filter_mode = $selected_agent_id ? 'agent' : 'all';
 
+// Get selected month and year for date filtering
+$selected_month = isset($_GET['month']) ? (int)$_GET['month'] : null;
+$selected_year = isset($_GET['year']) ? (int)$_GET['year'] : null;
+
+// Build date filter conditions
+$dateFilter = '';
+$dateParams = [];
+if ($selected_month && $selected_year) {
+    $start_date = "$selected_year-" . str_pad($selected_month, 2, '0', STR_PAD_LEFT) . "-01";
+    $end_date = date('Y-m-t', strtotime($start_date));
+    $dateFilter = " AND DATE(created_at) BETWEEN ? AND ?";
+    $dateParams = [$start_date, $end_date];
+}
+
 // Get all agents for dropdown
 $stmt = $conn->query("SELECT user_id, full_name FROM users WHERE role = 'agent' ORDER BY full_name");
 $allAgents = $stmt->fetchAll();
@@ -17,12 +31,17 @@ $allAgents = $stmt->fetchAll();
 // Get Statistics based on selection
 if ($filter_mode === 'agent' && $selected_agent_id) {
     // Agent-specific stats
-    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM clients WHERE agent_id = ?");
-    $stmt->execute([$selected_agent_id]);
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM clients WHERE agent_id = ?" . $dateFilter);
+    $params = [$selected_agent_id];
+    $params = array_merge($params, $dateParams);
+    $stmt->execute($params);
     $totalClients = $stmt->fetch()['count'];
 
-    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM subscriptions WHERE client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)");
-    $stmt->execute([$selected_agent_id]);
+    $subscriptionDateFilter = str_replace('created_at', 'subscriptions.created_at', $dateFilter);
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM subscriptions WHERE client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . $subscriptionDateFilter);
+    $params = [$selected_agent_id];
+    $params = array_merge($params, $dateParams);
+    $stmt->execute($params);
     $activeSubscriptions = $stmt->fetch()['count'];
 
     $stmt = $conn->prepare("
@@ -34,18 +53,22 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
             END) as revenue
         FROM subscriptions 
         WHERE status = 'active'
-        AND client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)
+        AND client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . $subscriptionDateFilter . "
     ");
-    $stmt->execute([$selected_agent_id]);
+    $params = [$selected_agent_id];
+    $params = array_merge($params, $dateParams);
+    $stmt->execute($params);
     $totalRevenue = $stmt->fetch()['revenue'] ?? 0;
 
     $stmt = $conn->prepare("
         SELECT COUNT(*) as count 
         FROM subscriptions 
         WHERE status = 'expired'
-        AND client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)
+        AND client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . $subscriptionDateFilter . "
     ");
-    $stmt->execute([$selected_agent_id]);
+    $params = [$selected_agent_id];
+    $params = array_merge($params, $dateParams);
+    $stmt->execute($params);
     $expiredSubscriptions = $stmt->fetch()['count'];
 
     $stmt = $conn->prepare("
@@ -53,9 +76,11 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
         FROM subscriptions 
         WHERE status = 'active' 
         AND end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-        AND client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)
+        AND client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . $subscriptionDateFilter . "
     ");
-    $stmt->execute([$selected_agent_id]);
+    $params = [$selected_agent_id];
+    $params = array_merge($params, $dateParams);
+    $stmt->execute($params);
     $expiringSoon = $stmt->fetch()['count'];
     
     $totalAgents = 1;
@@ -64,13 +89,18 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
     $stmt = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'agent'");
     $totalAgents = $stmt->fetch()['count'];
 
-    $stmt = $conn->query("SELECT COUNT(*) as count FROM clients");
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM clients WHERE 1=1" . $dateFilter);
+    $params = $dateParams;
+    $stmt->execute($params);
     $totalClients = $stmt->fetch()['count'];
 
-    $stmt = $conn->query("SELECT COUNT(*) as count FROM subscriptions WHERE status = 'active'");
+    $subscriptionDateFilter = str_replace('created_at', 'subscriptions.created_at', $dateFilter);
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM subscriptions WHERE status = 'active'" . $subscriptionDateFilter);
+    $params = $dateParams;
+    $stmt->execute($params);
     $activeSubscriptions = $stmt->fetch()['count'];
 
-    $stmt = $conn->query("
+    $stmt = $conn->prepare("
         SELECT 
             SUM(CASE 
                 WHEN subscription_type = 'Monthly' THEN price
@@ -78,23 +108,29 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
                 WHEN subscription_type = 'Yearly' THEN price / 12
             END) as revenue
         FROM subscriptions 
-        WHERE status = 'active'
+        WHERE status = 'active'" . $subscriptionDateFilter . "
     ");
+    $params = $dateParams;
+    $stmt->execute($params);
     $totalRevenue = $stmt->fetch()['revenue'] ?? 0;
 
-    $stmt = $conn->query("
+    $stmt = $conn->prepare("
         SELECT COUNT(*) as count 
         FROM subscriptions 
-        WHERE status = 'expired'
+        WHERE status = 'expired'" . $subscriptionDateFilter . "
     ");
+    $params = $dateParams;
+    $stmt->execute($params);
     $expiredSubscriptions = $stmt->fetch()['count'];
 
-    $stmt = $conn->query("
+    $stmt = $conn->prepare("
         SELECT COUNT(*) as count 
         FROM subscriptions 
         WHERE status = 'active' 
-        AND end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+        AND end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)" . $subscriptionDateFilter . "
     ");
+    $params = $dateParams;
+    $stmt->execute($params);
     $expiringSoon = $stmt->fetch()['count'];
 }
 
@@ -289,9 +325,9 @@ $pageTitle = "Admin Dashboard";
 
                 <!-- Agent Selector -->
                 <div style="margin-bottom: 30px; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);">
-                    <form method="GET" action="admin_dashboard.php" style="display: flex; gap: 15px; align-items: center;">
+                    <form method="GET" action="admin_dashboard.php" style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
                         <label for="agent_selector" style="font-weight: 600; color: #333;">Filter by Agent:</label>
-                        <select id="agent_selector" name="agent_id" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; min-width: 250px;">
+                        <select id="agent_selector" name="agent_id" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; min-width: 200px;">
                             <option value="">-- All Agents --</option>
                             <?php foreach ($allAgents as $agent): ?>
                                 <option value="<?php echo $agent['user_id']; ?>" <?php echo $selected_agent_id == $agent['user_id'] ? 'selected' : ''; ?>>
@@ -299,10 +335,39 @@ $pageTitle = "Admin Dashboard";
                                 </option>
                             <?php endforeach; ?>
                         </select>
+
+                        <label for="month_selector" style="font-weight: 600; color: #333; margin-left: 20px;">Month:</label>
+                        <select id="month_selector" name="month" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; min-width: 150px;">
+                            <option value="">-- All Months --</option>
+                            <option value="1" <?php echo $selected_month == 1 ? 'selected' : ''; ?>>January</option>
+                            <option value="2" <?php echo $selected_month == 2 ? 'selected' : ''; ?>>February</option>
+                            <option value="3" <?php echo $selected_month == 3 ? 'selected' : ''; ?>>March</option>
+                            <option value="4" <?php echo $selected_month == 4 ? 'selected' : ''; ?>>April</option>
+                            <option value="5" <?php echo $selected_month == 5 ? 'selected' : ''; ?>>May</option>
+                            <option value="6" <?php echo $selected_month == 6 ? 'selected' : ''; ?>>June</option>
+                            <option value="7" <?php echo $selected_month == 7 ? 'selected' : ''; ?>>July</option>
+                            <option value="8" <?php echo $selected_month == 8 ? 'selected' : ''; ?>>August</option>
+                            <option value="9" <?php echo $selected_month == 9 ? 'selected' : ''; ?>>September</option>
+                            <option value="10" <?php echo $selected_month == 10 ? 'selected' : ''; ?>>October</option>
+                            <option value="11" <?php echo $selected_month == 11 ? 'selected' : ''; ?>>November</option>
+                            <option value="12" <?php echo $selected_month == 12 ? 'selected' : ''; ?>>December</option>
+                        </select>
+
+                        <label for="year_selector" style="font-weight: 600; color: #333;">Year:</label>
+                        <select id="year_selector" name="year" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; min-width: 120px;">
+                            <option value="">-- All Years --</option>
+                            <?php 
+                            $currentYear = date('Y');
+                            for ($y = $currentYear; $y >= $currentYear - 5; $y--): 
+                            ?>
+                                <option value="<?php echo $y; ?>" <?php echo $selected_year == $y ? 'selected' : ''; ?>><?php echo $y; ?></option>
+                            <?php endfor; ?>
+                        </select>
+
                         <button type="submit" style="padding: 10px 25px; background-color: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
                             Filter
                         </button>
-                        <?php if ($selected_agent_id): ?>
+                        <?php if ($selected_agent_id || $selected_month || $selected_year): ?>
                             <a href="admin_dashboard.php" style="padding: 8px 18px; background-color: #ff6b5b; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; text-decoration: none; transition: all 0.3s ease;">
                                 Clear Filter
                             </a>
