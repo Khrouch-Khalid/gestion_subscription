@@ -55,7 +55,7 @@ if ($reportType === 'subscriptions') {
                 u.full_name as agent_name
             FROM subscriptions s
             JOIN clients c ON s.client_id = c.client_id
-            JOIN users u ON c.agent_id = u.user_id
+            LEFT JOIN users u ON c.agent_id = u.user_id
             WHERE DATE(s.created_at) BETWEEN ? AND ?
             ORDER BY s.created_at DESC
         ");
@@ -69,7 +69,7 @@ if ($reportType === 'subscriptions') {
                 SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
                 SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive,
                 SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) as expired,
-                SUM(price) as total_revenue
+                SUM(CASE WHEN status = 'active' THEN price ELSE 0 END) as total_revenue
             FROM subscriptions
             WHERE DATE(created_at) BETWEEN ? AND ?
         ");
@@ -143,7 +143,7 @@ if ($reportType === 'expiring') {
                 DATEDIFF(s.end_date, CURDATE()) as days_until_expiry
             FROM subscriptions s
             JOIN clients c ON s.client_id = c.client_id
-            JOIN users u ON c.agent_id = u.user_id
+            LEFT JOIN users u ON c.agent_id = u.user_id
             WHERE s.status = 'active' AND s.end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
             ORDER BY s.end_date ASC
         ");

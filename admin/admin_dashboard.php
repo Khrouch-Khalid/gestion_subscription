@@ -45,15 +45,10 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
     $activeSubscriptions = $stmt->fetch()['count'];
 
     $stmt = $conn->prepare("
-        SELECT 
-            SUM(CASE 
-                WHEN subscription_type = 'Monthly' THEN price
-                WHEN subscription_type = 'Quarterly' THEN price / 3
-                WHEN subscription_type = 'Yearly' THEN price / 12
-            END) as revenue
-        FROM subscriptions 
-        WHERE status = 'active'
-        AND client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . $subscriptionDateFilter . "
+        SELECT COALESCE(SUM(s.price), 0) as revenue
+        FROM subscriptions s
+        WHERE s.status = 'active'
+        AND s.client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . str_replace('created_at', 's.created_at', $subscriptionDateFilter) . "
     ");
     $params = [$selected_agent_id];
     $params = array_merge($params, $dateParams);
@@ -101,12 +96,7 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
     $activeSubscriptions = $stmt->fetch()['count'];
 
     $stmt = $conn->prepare("
-        SELECT 
-            SUM(CASE 
-                WHEN subscription_type = 'Monthly' THEN price
-                WHEN subscription_type = 'Quarterly' THEN price / 3
-                WHEN subscription_type = 'Yearly' THEN price / 12
-            END) as revenue
+        SELECT COALESCE(SUM(price), 0) as revenue
         FROM subscriptions 
         WHERE status = 'active'" . $subscriptionDateFilter . "
     ");
@@ -164,7 +154,7 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
     $stmt = $conn->prepare("
         SELECT c.*, u.full_name as agent_name
         FROM clients c
-        JOIN users u ON c.agent_id = u.user_id
+        LEFT JOIN users u ON c.agent_id = u.user_id
         WHERE c.agent_id = ?
         ORDER BY c.created_at DESC
         LIMIT 5
@@ -176,7 +166,7 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
     $stmt = $conn->query("
         SELECT c.*, u.full_name as agent_name
         FROM clients c
-        JOIN users u ON c.agent_id = u.user_id
+        LEFT JOIN users u ON c.agent_id = u.user_id
         ORDER BY c.created_at DESC
         LIMIT 5
     ");
@@ -239,8 +229,8 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
         SELECT s.*, c.full_name as client_name, u.full_name as agent_name
         FROM subscriptions s
         JOIN clients c ON s.client_id = c.client_id
-        JOIN users u ON c.agent_id = u.user_id
-        WHERE u.user_id = ?
+        LEFT JOIN users u ON c.agent_id = u.user_id
+        WHERE c.agent_id = ?
         AND s.status = 'active'
         AND s.end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
         ORDER BY s.end_date ASC
@@ -254,7 +244,7 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
         SELECT s.*, c.full_name as client_name, u.full_name as agent_name
         FROM subscriptions s
         JOIN clients c ON s.client_id = c.client_id
-        JOIN users u ON c.agent_id = u.user_id
+        LEFT JOIN users u ON c.agent_id = u.user_id
         WHERE s.status = 'active'
         AND s.end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
         ORDER BY s.end_date ASC

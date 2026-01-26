@@ -23,7 +23,7 @@ $query = "
            COUNT(s.subscription_id) as subscription_count,
            SUM(CASE WHEN s.status = 'active' THEN 1 ELSE 0 END) as active_subscriptions
     FROM clients c
-    JOIN users u ON c.agent_id = u.user_id
+    LEFT JOIN users u ON c.agent_id = u.user_id
     LEFT JOIN subscriptions s ON c.client_id = s.client_id
     WHERE 1=1
 ";
