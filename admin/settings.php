@@ -303,7 +303,7 @@ try {
                 <p><?php echo htmlspecialchars($_SESSION['full_name']); ?></p>
             </div>
             <nav class="sidebar-nav">
-                <a href="admin_dashboard.php">📊 Dashboard</a>
+                <a href="admin_dashboard.php" style="<?php echo $current_page === 'admin_dashboard.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">📊 Dashboard</a>
                 
                 <!-- Agents Menu Group -->
                 <div class="sidebar-menu-group">
@@ -319,7 +319,7 @@ try {
                 </div>
                 
                 <a href="reports.php">📈 Reports</a>
-                <a href="settings.php">⚙️ Settings</a>
+                <a href="settings.php" style="<?php echo $current_page === 'settings.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">⚙️ Settings</a>
                 
                 <a href="../auth/logout.php" style="margin-top: 20px; border-top: 1px solid #34495e; padding-top: 15px;">🚪 Logout</a>
             </nav>
@@ -491,6 +491,17 @@ try {
                     const button = menu.previousElementSibling;
                     menu.classList.add('active');
                     button.classList.add('expanded');
+                }
+            });
+        });
+
+        // Highlight active menu link (including top-level)
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPage = window.location.pathname.split('/').pop();
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                const href = link.getAttribute('href').split('/').pop();
+                if (href === currentPage) {
+                    link.classList.add('active');
                 }
             });
         });

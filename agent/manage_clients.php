@@ -532,6 +532,17 @@ $stats = $stmt->fetch();
                 }
             });
         });
+
+        // Highlight active menu link (including top-level)
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPage = window.location.pathname.split('/').pop();
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                const href = link.getAttribute('href').split('/').pop();
+                if (href === currentPage) {
+                    link.classList.add('active');
+                }
+            });
+        });
     </script>
 </body>
 </html>

@@ -295,7 +295,7 @@ $pageTitle = "Admin Dashboard";
                 </div>
                 
                 <a href="reports.php" style="<?php echo $current_page === 'reports.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">📈 Reports</a>
-                <a href="settings.php">⚙️ Settings</a>
+                <a href="settings.php" style="<?php echo $current_page === 'settings.php' ? 'background-color: #ff6b5b; color: white;' : ''; ?>">⚙️ Settings</a>
                 <a href="../auth/logout.php" style="margin-top: 20px; border-top: 1px solid #34495e; padding-top: 15px;">🚪 Logout</a>
             </nav>
         </aside>
@@ -465,7 +465,7 @@ $pageTitle = "Admin Dashboard";
                                             <?php 
                                             // Fetch recent subscriptions for selected agent
                                             $stmt = $conn->prepare("
-                                                SELECT s.*, c.full_name as client_name
+                                                SELECT s.subscription_id, s.subscription_name, s.subscription_type, s.price, s.status AS subscription_status, s.end_date, s.created_at, c.full_name as client_name\
                                                 FROM subscriptions s
                                                 JOIN clients c ON s.client_id = c.client_id
                                                 WHERE c.agent_id = ?
@@ -480,8 +480,12 @@ $pageTitle = "Admin Dashboard";
                                                     <td><?php echo htmlspecialchars($sub['client_name']); ?></td>
                                                     <td><?php echo htmlspecialchars($sub['subscription_type']); ?></td>
                                                     <td>
-                                                        <span class="badge-sm <?php echo $sub['status'] === 'active' ? 'badge-active' : 'badge-inactive'; ?>">
-                                                            <?php echo ucfirst($sub['status']); ?>
+                                                        <?php
+                                                            $status = $sub['subscription_status'] ?? $sub['status'];
+                                                            $label = $status === 'active' ? 'Active' : 'Inactive';
+                                                        ?>
+                                                        <span class="badge-sm <?php echo $status === 'active' ? 'badge-active' : 'badge-inactive'; ?>">
+                                                            <?php echo $label; ?>
                                                         </span>
                                                     </td>
                                                     <td><?php echo formatDate($sub['end_date']); ?></td>
@@ -647,6 +651,17 @@ $pageTitle = "Admin Dashboard";
             // Highlight active menu item
             const currentPage = window.location.pathname.split('/').pop();
             document.querySelectorAll('.sidebar-submenu a').forEach(link => {
+                const href = link.getAttribute('href').split('/').pop();
+                if (href === currentPage) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Highlight active menu link (including top-level)
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPage = window.location.pathname.split('/').pop();
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
                 const href = link.getAttribute('href').split('/').pop();
                 if (href === currentPage) {
                     link.classList.add('active');

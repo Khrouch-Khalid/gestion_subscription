@@ -292,9 +292,9 @@ $stmt = $conn->prepare("SELECT client_id, full_name, email, phone, created_at, s
 $stmt->execute([$agent_id]);
 $recentClients = $stmt->fetchAll();
 
-// Get recent subscriptions
+// Get recent subscriptions (pull only subscription status and alias it to avoid any client status mix‑up)
 $stmt = $conn->prepare("SELECT s.subscription_id, s.subscription_name, s.subscription_type, 
-                              s.price, s.status, s.created_at, c.full_name, c.client_id
+                              s.price, s.status AS subscription_status, s.created_at, c.full_name, c.client_id
                        FROM subscriptions s
                        JOIN clients c ON s.client_id = c.client_id
                        WHERE c.agent_id = ?
@@ -717,6 +717,11 @@ $expiringList = $stmt->fetchAll();
                                     </thead>
                                     <tbody>
                                         <?php foreach ($recentSubscriptions as $sub): ?>
+                                        <?php
+                                            // normalize label: active stays active, everything else becomes "Inactive"
+                                            $status = $sub['subscription_status'] ?? $sub['status'];
+                                            $label = $status === 'active' ? 'Active' : 'Inactive';
+                                        ?>
                                         <tr>
                                             <td>
                                                 <a href="view_client.php?id=<?php echo $sub['client_id']; ?>" style="color: #ff6b5b; text-decoration: none;">
@@ -726,8 +731,8 @@ $expiringList = $stmt->fetchAll();
                                             <td><?php echo htmlspecialchars($sub['subscription_type']); ?></td>
                                             <td><?php echo formatCurrency($sub['price']); ?></td>
                                             <td>
-                                                <span class="badge-sm <?php echo $sub['status'] === 'active' ? 'badge-active' : 'badge-inactive'; ?>">
-                                                    <?php echo ucfirst($sub['status']); ?>
+                                                <span class="badge-sm <?php echo $status === 'active' ? 'badge-active' : 'badge-inactive'; ?>">
+                                                    <?php echo $label; ?>
                                                 </span>
                                             </td>
                                         </tr>
@@ -839,6 +844,17 @@ $expiringList = $stmt->fetchAll();
                 window.location.href = 'agent_dashboard.php?download_pdf=1&start_date=' + startDate + '&end_date=' + endDate;
                 closeDownloadModal();
             }
+        });
+
+        // Highlight active menu link (including top-level)
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPage = window.location.pathname.split('/').pop();
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                const href = link.getAttribute('href').split('/').pop();
+                if (href === currentPage) {
+                    link.classList.add('active');
+                }
+            });
         });
     </script>
 </body>
