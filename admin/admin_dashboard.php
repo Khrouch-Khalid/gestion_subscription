@@ -37,19 +37,26 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
     $stmt->execute($params);
     $totalClients = $stmt->fetch()['count'];
 
-    $subscriptionDateFilter = str_replace('created_at', 'subscriptions.created_at', $dateFilter);
-    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM subscriptions WHERE client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . $subscriptionDateFilter);
+    // create two date filters: one for unaliased queries and one for when subscriptions are
+    // referenced with alias `s`.  this avoids accidentally prefixing the alias twice.
+    $subscriptionDateFilterNoAlias = str_replace('created_at', 'subscriptions.created_at', $dateFilter);
+    $subscriptionDateFilterAlias = str_replace('created_at', 's.created_at', $dateFilter);
+
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM subscriptions WHERE client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . $subscriptionDateFilterNoAlias);
     $params = [$selected_agent_id];
     $params = array_merge($params, $dateParams);
     $stmt->execute($params);
     $activeSubscriptions = $stmt->fetch()['count'];
 
-    $stmt = $conn->prepare("
-        SELECT COALESCE(SUM(s.price), 0) as revenue
-        FROM subscriptions s
-        WHERE s.status = 'active'
-        AND s.client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . str_replace('created_at', 's.created_at', $subscriptionDateFilter) . "
-    ");
+    // revenue for agent: note we build the query on multiple lines for readability,
+    // but do NOT include literal backslashes which end up in the SQL string.
+    $stmt = $conn->prepare(
+        "SELECT COALESCE(SUM(s.price), 0) as revenue
+         FROM subscriptions s
+         WHERE s.status = 'active'
+           AND s.client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)"
+        . $subscriptionDateFilterAlias
+    );
     $params = [$selected_agent_id];
     $params = array_merge($params, $dateParams);
     $stmt->execute($params);
@@ -59,7 +66,7 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
         SELECT COUNT(*) as count 
         FROM subscriptions 
         WHERE status = 'expired'
-        AND client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . $subscriptionDateFilter . "
+        AND client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . $subscriptionDateFilterNoAlias . "
     ");
     $params = [$selected_agent_id];
     $params = array_merge($params, $dateParams);
@@ -71,7 +78,7 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
         FROM subscriptions 
         WHERE status = 'active' 
         AND end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-        AND client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . $subscriptionDateFilter . "
+        AND client_id IN (SELECT client_id FROM clients WHERE agent_id = ?)" . $subscriptionDateFilterNoAlias . "
     ");
     $params = [$selected_agent_id];
     $params = array_merge($params, $dateParams);
@@ -89,8 +96,8 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
     $stmt->execute($params);
     $totalClients = $stmt->fetch()['count'];
 
-    $subscriptionDateFilter = str_replace('created_at', 'subscriptions.created_at', $dateFilter);
-    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM subscriptions WHERE status = 'active'" . $subscriptionDateFilter);
+    $subscriptionDateFilterNoAlias = str_replace('created_at', 'subscriptions.created_at', $dateFilter);
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM subscriptions WHERE status = 'active'" . $subscriptionDateFilterNoAlias);
     $params = $dateParams;
     $stmt->execute($params);
     $activeSubscriptions = $stmt->fetch()['count'];
@@ -98,7 +105,7 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
     $stmt = $conn->prepare("
         SELECT COALESCE(SUM(price), 0) as revenue
         FROM subscriptions 
-        WHERE status = 'active'" . $subscriptionDateFilter . "
+        WHERE status = 'active'" . $subscriptionDateFilterNoAlias . "
     ");
     $params = $dateParams;
     $stmt->execute($params);
@@ -107,7 +114,7 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
     $stmt = $conn->prepare("
         SELECT COUNT(*) as count 
         FROM subscriptions 
-        WHERE status = 'expired'" . $subscriptionDateFilter . "
+        WHERE status = 'expired'" . $subscriptionDateFilterNoAlias . "
     ");
     $params = $dateParams;
     $stmt->execute($params);
@@ -117,7 +124,7 @@ if ($filter_mode === 'agent' && $selected_agent_id) {
         SELECT COUNT(*) as count 
         FROM subscriptions 
         WHERE status = 'active' 
-        AND end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)" . $subscriptionDateFilter . "
+        AND end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)" . $subscriptionDateFilterNoAlias . "
     ");
     $params = $dateParams;
     $stmt->execute($params);
